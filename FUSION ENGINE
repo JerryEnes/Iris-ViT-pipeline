@@ -1,0 +1,26 @@
+@'
+class FusionEngine:
+    def __init__(self):
+        self.iris_weight = 0.6
+        self.vein_weight = 0.4
+        self.threshold = 0.65
+    
+    def fuse(self, iris_score, vein_score):
+        if iris_score is None:
+            final = vein_score * 1.2
+        elif vein_score is None:
+            final = iris_score * 1.2
+        else:
+            final = (self.iris_weight * iris_score + 
+                    self.vein_weight * vein_score)
+        final = max(0.0, min(1.0, final))
+        decision = final >= self.threshold
+        return round(final, 3), decision
+
+_fusion = None
+def get_fusion():
+    global _fusion
+    if _fusion is None:
+        _fusion = FusionEngine()
+    return _fusion
+'@ | Out-File -FilePath src\models\fusion_engine.py -Encoding UTF8 -Force
