@@ -3,3 +3,14 @@ cd \
 mkdir iris-vein-vit
 cd iris-vein-vit
 mkdir src\feature_extraction, src\models, src\utils, src\api, docker\postgres-init, config, scripts, logs, airflow\dags -Force
+
+iris-vein-vit/
+├── src/
+│   ├── feature_extraction/  # Iris and vein feature extractors
+│   ├── models/             # Fusion engine
+│   └── utils/             # Kafka streamer
+├── docker/                # Docker configuration
+├── scripts/              # Run/stop scripts
+├── airflow/             # Airflow DAGs
+├── config/             # Configuration files
+└── requirements.txt   # Python dependencies
