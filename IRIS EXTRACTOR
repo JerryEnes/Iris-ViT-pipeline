@@ -1,0 +1,53 @@
+@'
+import cv2
+import numpy as np
+import os
+import glob
+
+class IrisExtractor:
+    def __init__(self):
+        self.orb = cv2.ORB_create(256)
+        self.input_size = (128, 128)
+    
+    def extract(self, image_path):
+        try:
+            if isinstance(image_path, str):
+                image_path = image_path.strip('"').strip("'")
+            
+            img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+            if img is None:
+                return np.zeros(128)
+            
+            img = cv2.resize(img, self.input_size)
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+            img = clahe.apply(img)
+            _, des = self.orb.detectAndCompute(img, None)
+            
+            if des is not None:
+                features = des.flatten()[:128]
+                if len(features) < 128:
+                    features = np.pad(features, (0, 128 - len(features)))
+            else:
+                features = img.flatten()[:128]
+            
+            norm = np.linalg.norm(features)
+            if norm > 0:
+                features = features / norm
+            return features
+        except:
+            return np.zeros(128)
+    
+    def compare(self, f1, f2):
+        if f1 is None or f2 is None:
+            return 0.0
+        dot = np.dot(f1, f2)
+        norm = (np.linalg.norm(f1) * np.linalg.norm(f2)) + 1e-8
+        return float(dot / norm)
+
+_iris = None
+def get_iris():
+    global _iris
+    if _iris is None:
+        _iris = IrisExtractor()
+    return _iris
+'@ | Out-File -FilePath src\feature_extraction\iris_extractor.py -Encoding UTF8 -Force
