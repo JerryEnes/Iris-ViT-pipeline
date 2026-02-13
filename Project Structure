@@ -1,0 +1,5 @@
+F:
+cd \
+mkdir iris-vein-vit
+cd iris-vein-vit
+mkdir src\feature_extraction, src\models, src\utils, src\api, docker\postgres-init, config, scripts, logs, airflow\dags -Force
