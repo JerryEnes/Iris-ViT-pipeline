@@ -1,0 +1,98 @@
+@'
+from kafka import KafkaProducer, KafkaAdminClient
+from kafka.admin import NewTopic
+import json
+import numpy as np
+import glob
+import os
+import sys
+from datetime import datetime
+
+sys.path.append('F:/iris-vein-vit')
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
+
+class KafkaStreamer:
+    def __init__(self):
+        self.producer = KafkaProducer(
+            bootstrap_servers=['localhost:9092'],
+            value_serializer=lambda v: json.dumps(v, cls=NumpyEncoder).encode('utf-8')
+        )
+        self._create_topics()
+    
+    def _create_topics(self):
+        try:
+            admin = KafkaAdminClient(bootstrap_servers=['localhost:9092'])
+            topics = [
+                NewTopic('iris-features', 1, 1),
+                NewTopic('vein-features', 1, 1)
+            ]
+            admin.create_topics(topics, validate_only=False)
+        except:
+            pass
+    
+    def stream_iris(self, folder_path, limit=50):
+        from src.feature_extraction.iris_extractor import get_iris
+        extractor = get_iris()
+        folder_path = folder_path.strip('"').strip("'")
+        files = []
+        files.extend(glob.glob(os.path.join(folder_path, '*iris*.jpg')))
+        files.extend(glob.glob(os.path.join(folder_path, '*.jpg')))
+        files = list(set(files))
+        count = 0
+        for f in files[:limit]:
+            try:
+                features = extractor.extract(f)
+                filename = os.path.basename(f)
+                user_id = filename.split(' ')[0].split('_')[0]
+                msg = {
+                    'user_id': user_id,
+                    'features': features.tolist(),
+                    'timestamp': str(datetime.now()),
+                    'path': f
+                }
+                self.producer.send('iris-features', msg)
+                count += 1
+            except:
+                continue
+        self.producer.flush()
+        return count
+    
+    def stream_vein(self, folder_path, limit=50):
+        from src.feature_extraction.vein_extractor import get_vein
+        extractor = get_vein()
+        folder_path = folder_path.strip('"').strip("'")
+        files = []
+        files.extend(glob.glob(os.path.join(folder_path, '*finger*vein*.jpg')))
+        files.extend(glob.glob(os.path.join(folder_path, '*vein*.jpg')))
+        files = list(set(files))
+        count = 0
+        for f in files[:limit]:
+            try:
+                features = extractor.extract(f)
+                filename = os.path.basename(f)
+                user_id = filename.split(' ')[0].split('_')[0]
+                msg = {
+                    'user_id': user_id,
+                    'features': features.tolist(),
+                    'timestamp': str(datetime.now()),
+                    'path': f
+                }
+                self.producer.send('vein-features', msg)
+                count += 1
+            except:
+                continue
+        self.producer.flush()
+        return count
+
+_kafka = None
+def get_kafka():
+    global _kafka
+    if _kafka is None:
+        _kafka = KafkaStreamer()
+    return _kafka
+'@ | Out-File -FilePath src\utils\kafka_streamer.py -Encoding UTF8 -Force
