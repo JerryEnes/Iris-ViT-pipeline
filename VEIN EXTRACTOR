@@ -1,0 +1,52 @@
+@'
+import cv2
+import numpy as np
+from skimage import feature
+import os
+import glob
+
+class VeinExtractor:
+    def __init__(self):
+        self.input_size = (64, 128)
+    
+    def extract(self, image_path):
+        try:
+            if isinstance(image_path, str):
+                image_path = image_path.strip('"').strip("'")
+            
+            img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+            if img is None:
+                return np.zeros(128)
+            
+            img = cv2.resize(img, self.input_size)
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+            img = clahe.apply(img)
+            
+            hog = feature.hog(img, orientations=8, pixels_per_cell=(8,8),
+                             cells_per_block=(2,2), feature_vector=True)
+            
+            features = hog[:128]
+            if len(features) < 128:
+                features = np.pad(features, (0, 128 - len(features)))
+            
+            norm = np.linalg.norm(features)
+            if norm > 0:
+                features = features / norm
+            return features
+        except:
+            return np.zeros(128)
+    
+    def compare(self, f1, f2):
+        if f1 is None or f2 is None:
+            return 0.0
+        dot = np.dot(f1, f2)
+        norm = (np.linalg.norm(f1) * np.linalg.norm(f2)) + 1e-8
+        return float(dot / norm)
+
+_vein = None
+def get_vein():
+    global _vein
+    if _vein is None:
+        _vein = VeinExtractor()
+    return _vein
+'@ | Out-File -FilePath src\feature_extraction\vein_extractor.py -Encoding UTF8 -Force
